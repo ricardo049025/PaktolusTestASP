@@ -1,0 +1,170 @@
+@model PaktolusApp.ModelView.StudentVM
+
+@{
+    ViewData["Title"] = "Edit";
+}
+
+<h1>Edit</h1>
+
+<h4>Student</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input id="txtid" value=@Model.Id type="hidden" asp-for="Id" />
+            <div class="form-group">
+                <label asp-for="Name" class="control-label"></label>
+                <input id="txtName" asp-for="Name" class="form-control" onkeypress="return true;"/>
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Email" class="control-label"></label>
+                <input id="txtemail" asp-for="Email" class="form-control" onkeypress="return true;" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Phone" class="control-label"></label>
+                <input id="txtphone" asp-for="Phone" class="form-control" onkeypress="return onlyNumberKey(event)"/>
+                <span asp-validation-for="Phone" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="ZipCode" class="control-label"></label>
+                <input id="txtzipcode" asp-for="ZipCode" class="form-control" onkeypress="return onlyNumberKey(event)"/>
+                <span asp-validation-for="ZipCode" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <button type="button" class="btn btn-primary" onclick="updateHandler(this);">Update</button>
+            </div>
+        </form>
+    </div>
+    <div class="col-md-4">
+        @foreach (var item in Model.Hobbies)
+        {
+            <div class="form-group form-check">
+                <label class="form-check-label">
+                    <input class="inputCheckHobbies form-check-input" @(Model.HobbiesId.Contains(item.Id) ? "checked" : "") value=@item.Name id=@item.Id type="checkbox" /> @item.Name
+                </label>
+            </div>
+        }
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+<script>
+
+    const onlyNumberKey = (evt) => {
+
+        var ASCIICode = (evt.which) ? evt.which : evt.keyCode
+        if (ASCIICode > 31 && (ASCIICode < 48 || ASCIICode > 57))
+            return false;
+
+        return true;
+    }
+
+    const isValidInputs = () => {
+
+        let errors = "";
+
+        //getting student data
+        var name = document.getElementById("txtName").value;
+        var email = document.getElementById("txtemail").value;
+        var phone = document.getElementById("txtphone").value;
+        var zipcode = document.getElementById("txtzipcode").value;
+
+
+        if (name.length === 0) errors += "Name required,"
+        if (email.length === 0) errors += "Email required,"
+        if (phone.length === 0) errors += "Phone required (10 digits),"
+        if (zipcode.length === 0) errors += "Zipcode required (5 digits)"
+
+        return { isValid: (errors.length == 0 ? true : false), errors: errors };
+    }
+
+    const patchStudent = (model) => {
+
+        var url = '/Students/Edit';
+        $.ajax({
+            url: url,
+            data: JSON.stringify(model),
+            contentType: "application/json",
+            type: 'PATCH',
+            success: function (response) {
+
+                Swal.fire({
+                    title: 'Information !!',
+                    text: 'Student has been updated',
+                    icon: 'info',
+                    confirmButtonText: 'Ok',
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location = response.url;
+                    }
+                })
+
+            },
+            error: function (err) {
+                Swal.fire(
+                    'Error Message',
+                    err.responseJSON.detail,
+                    'error'
+                )
+            }
+        });
+
+    }
+
+    const getCheckedHobbies = (className) => {
+        var checkboxes = document.getElementsByClassName(className);
+        var checkboxesChecked = [];
+
+        for (var i = 0; i < checkboxes.length; i++) {
+            if (checkboxes[i].checked)
+                checkboxesChecked.push(parseInt(checkboxes[i].id));
+
+        }
+        return checkboxesChecked.length > 0 ? checkboxesChecked : null;
+    }
+
+    const updateHandler = (event) => {
+
+        let body;
+        const { isValid, errors } = isValidInputs();
+
+        //validating inputs
+        if (!isValid) {
+
+            Swal.fire(
+                'Validations',
+                errors,
+                'warning'
+            )
+            return false;
+        }
+
+        //getting student data
+        var id = document.getElementById("txtid").value;
+        var name = document.getElementById("txtName").value;
+        var email = document.getElementById("txtemail").value;
+        var phone = document.getElementById("txtphone").value;
+        var zipcode = document.getElementById("txtzipcode").value;
+
+        //getting hobbies selected
+        var hobb = getCheckedHobbies("inputCheckHobbies");
+
+        //set the data
+        body = {Id: id, Name: name, Email: email, Phone: phone, ZipCode: zipcode, HobbiesId: hobb }
+
+        console.log(hobb);
+        //post
+        patchStudent(body);
+    }
+
+</script>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
